@@ -1,10 +1,12 @@
 package com.example.notifications;
-import android.app.Notification;
+
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -13,19 +15,14 @@ import android.widget.Button;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
+
 
 
 
 public class MainActivity extends AppCompatActivity {
     public final static String GROUP_KEY = "GK";
     public final static String CHANNEL_ID = "channel_id";
-    public final static int FIRST_NOTIFY_ID = 1;
-    public final static int SECOND_NOTIFY_ID = 2;
-    public final static int SUMMARY_NOTIFY_ID = 3;
-    NotificationManagerCompat notificationManagerCompat;
 
-    Notification notification, notification2, notification3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,81 +35,69 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v)
             {
-                firstNotification();
-                secondNotification();
+                showNewsMessage();
                 summaryNotification();
             }
         });
     }
 
-//--------------------------------------------------------------------------------------------------
+
+    //--------------------------------------------------------------------------------------------------
     @RequiresApi(api = Build.VERSION_CODES.S)
-    private void firstNotification()
-    {
+
+    private void showNewsMessage() {
+
         PendingIntent InterestingIntent=PendingIntent.getActivity(MainActivity.this,0,
                 new Intent(MainActivity.this,MainActivity.class),PendingIntent.FLAG_MUTABLE);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder nb = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setAutoCancel(true)
+                .setChannelId(CHANNEL_ID)
+                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .addAction(0, "Не интересно", InterestingIntent)
-                .setContentTitle("2")
-                .setGroup(GROUP_KEY)
-                .setContentInfo("Первое уведомление")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentText("text");
+                .setContentText("text")
+                .setContentTitle("title")
+                .setGroup(GROUP_KEY);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "my Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-        }
-        notification = builder.build();
-        notificationManagerCompat = NotificationManagerCompat.from(this);
-        setContentView(R.layout.activity_main);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE);
+        nb.setContentIntent(pendingIntent);
 
-        notificationManagerCompat.notify(FIRST_NOTIFY_ID, notification);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                        CHANNEL_ID,
+                        getString(R.string.app_name),
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                    channel.setAllowBubbles(true);
+
+                notificationManager.createNotificationChannel(channel);
+            }
+        } else
+            nb.setPriority(NotificationCompat.PRIORITY_HIGH);
+
+        notificationManager.notify(0, nb.build());
+        notificationManager.notify(1, nb.build());
     }
-
-//--------------------------------------------------------------------------------------------------
-    @RequiresApi(api = Build.VERSION_CODES.S)
-    private void secondNotification()
-    {
-        PendingIntent InterestingIntent=PendingIntent.getActivity(MainActivity.this,0,
-                new Intent(MainActivity.this,MainActivity.class),PendingIntent.FLAG_MUTABLE);
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_notify_chat)
-                .addAction(0, "Не интересно", InterestingIntent)
-                .setContentTitle("1")
-                .setGroup(GROUP_KEY)
-                .setContentInfo("Второе уведомление")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentText("text");
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "my Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-        }
-        notification2 = builder.build();
-        notificationManagerCompat = NotificationManagerCompat.from(this);
-        setContentView(R.layout.activity_main);
-
-        notificationManagerCompat.notify(SECOND_NOTIFY_ID, notification2);
-    }
-//--------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------
     private void summaryNotification()
     {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_notify_chat)
+        NotificationCompat.Builder nb = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_notify_sync)
+                .setContentInfo("user_mail.com")
                 .setGroup(GROUP_KEY)
                 .setGroupSummary(true);
-        notification3 = builder.build();
 
-        notificationManagerCompat.notify(SUMMARY_NOTIFY_ID, notification3);
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        notificationManager.notify(-100, nb.build());
     }
 }
